@@ -1,8 +1,6 @@
-package main;
+package utility;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
-
-import utility.*;
 
 public class SetupPKI {
     public static void main(String[] args) {
