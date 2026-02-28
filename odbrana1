@@ -1,0 +1,227 @@
+Odlično pitanje! Hajde da prođemo kroz zadatak sekciju po sekciju.
+
+---
+
+## 1. Registracija i generisanje sertifikata
+
+**Zadatak traži:**
+> *"Sistem automatski generiše digitalni sertifikat i par ključeva za korisnika. Voditi računa da podaci u sertifikatu budu povezani sa odgovarajućim korisničkim podacima. Generisani sertifikat i privatni ključ treba da budu adekvatno zaštićeni."*
+
+**Kako je implementirano — `UserRegistration.register()`:**
+- Generiše se **RSA-2048 par ključeva** (`KeyUtils.generateRSAKeyPair()`)
+- CN u sertifikatu sadrži naziv organizacije/ime glasača, OU sadrži korisničko ime — dakle podaci su **direktno vezani** za korisnika
+- Sertifikat i privatni ključ se čuvaju u **PKCS#12 (.p12) fajlu zaštićenom lozinkom korisnika** — niko drugi ne može otvoriti taj fajl bez lozinke
+- Javni sertifikat se dodatno eksportuje u `public_certs/<username>.cer` (DER format) — dostupan za enkripciju glasova
+
+**Kako demonstrirati:** Pokaži da nakon registracije postoje dva fajla — `glasac1.p12` (privatno, zaštićeno) i `public_certs/glasac1.cer` (javno).
+
+---
+
+## 2. Dvostepena prijava
+
+**Zadatak traži:**
+> *"U prvom koraku je potrebno unijeti digitalni sertifikat, pri čemu se vrši validacija sertifikata. U drugom koraku korisnik unosi korisničko ime i lozinku."*
+
+**Kako je implementirano — `LoginManager.login()`:**
+
+**Korak 1 — Validacija sertifikata (4 provjere):**
+```
+A) checkValidity(new Date())        → vremenska validnost
+B) issuerDN.contains("Organizator-CA") ili ("Glasac-CA") → provjera izdavača
+C) CRLManager.isRevoked(userCert)   → provjera CRL liste
+D) ks.getKey(username, password)    → provjera privatnog ključa
+```
+**Korak 2 — Provjera lozinke:**
+- U PKCS#12 sistemu, uspješno otključavanje keystora **dokazuje** da korisnik zna lozinku
+- Sistem automatski prepoznaje tip korisnika (ORGANIZER/VOTER) iz izdavača sertifikata
+
+**Kako demonstrirati:** Pokušaj prijavu sa pogrešnom lozinkom 3 puta — sertifikat će biti automatski povučen.
+
+---
+
+## 3. Zaštita tajnosti glasa — enkripcija
+
+**Zadatak traži:**
+> *"Svaki glas se enkriptuje simetričnim algoritmom, pri čemu se generiše nasumični ključ za svaki pojedinačni glas. Simetrični ključ se enkriptuje javnim ključem organizatora."*
+
+**Kako je implementirano — `VoteEncryptionService.encryptAndSign()`:**
+
+```
+KORAK 1: KeyGenerator.init(256, new SecureRandom())
+         → novi AES-256 ključ za SVAKI glas posebno
+
+KORAK 2: Cipher("AES/CBC/PKCS5Padding").doFinal(candidateName)
+         → glas enkriptovan tim AES ključem, sa nasumičnim IV
+
+KORAK 3: Cipher("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
+              .doFinal(aesKey.getEncoded())
+         → AES ključ enkriptovan javnim ključem organizatora
+
+Rezultat koji se čuva = [IV(16B) | AES_ciphertext]
+```
+
+**Kako demonstrirati:** Otvori fajl u `elections/Izbori_..._votes/` — vidjet ćeš binarne podatke, potpuno nečitljive. Sadržaj glasa (Java, Python...) nigdje nije vidljiv.
+
+---
+
+## 4. Digitalni potpis glasa
+
+**Zadatak traži:**
+> *"Nakon obavljenog glasanja, vrši se automatska enkripcija glasa i generiše se njegov digitalni potpis."*
+
+**Kako je implementirano — nastavak `encryptAndSign()`:**
+
+```
+KORAK 4: Signature("SHA256withRSA")
+              .initSign(voterPrivateKey)
+              .update(ivAndCiphertext)    ← potpisuje se cijeli enkriptovani sadržaj
+              .sign()
+         → SHA256withRSA potpis privatnim ključem glasača
+```
+
+Potpis se čuva u `EncryptedVote.digitalSignature` zajedno sa sertifikatom glasača (`voterCertEncoded`) — tako organizator pri brojanju može **uvijek provjeriti** čiji je glas i da nije izmijenjen.
+
+---
+
+## 5. Verifikacija glasa bez otkrivanja sadržaja
+
+**Zadatak traži:**
+> *"Glasač dobija potvrdu da je glas uspješno upisan i u svakom trenutku može da verifikuje da je njegov glas ispravno zabilježen, bez otkrivanja sadržaja."*
+
+**Kako je implementirano — `VoteEncryptionService.verifyVoteSignature()`:**
+
+```java
+// Uzme sertifikat glasača iz samog glasa
+X509Certificate voterCert = cf.generateCertificate(vote.getVoterCertEncoded());
+
+// Verifikuje potpis javnim ključem glasača
+verifier.initVerify(voterCert.getPublicKey());
+verifier.update(vote.getEncryptedVoteData());  // ← enkriptovani podaci, ne plaintext!
+return verifier.verify(vote.getDigitalSignature());
+```
+
+Ključna stvar — **glas se nikad ne dekriptuje** u ovom procesu. Verifikuje se samo matematička ispravnost potpisa nad enkriptovanim podacima. Sadržaj (Java, Python...) ostaje tajna.
+
+**Kako demonstrirati:** Opcija 2 u glasačkom panelu → prikaže `VALIDAN` ili `NEVALIDAN` bez ikakvog otkrivanja kandidata.
+
+---
+
+## 6. Odvojenost metapodataka i glasova + HMAC
+
+**Zadatak traži:**
+> *"Metapodaci o glasanju se čuvaju odvojeno od glasova i njihov integritet se štiti pomoću HMAC algoritma."*
+
+**Kako je implementirano:**
+
+**Odvojenost na disku:**
+```
+elections/
+  Izbori_za_omiljeni_programski_jezik_.dat    ← SAMO metapodaci (Election objekat)
+  Izbori_za_omiljeni_programski_jezik__votes/
+    <hash_glasaca>.vote                        ← enkriptovani glasovi (EncryptedVote)
+```
+
+**HMAC zaštita — `HMACService` + `ElectionManager`:**
+```java
+// Pri svakom čuvanju:
+String hmacKey = HMACService.deriveElectionHMACKey(title, organizerUsername);
+election.setHmac(HMACService.generateHMAC(election.getMetadataForHMAC(), hmacKey));
+
+// Metapodaci koji ulaze u HMAC:
+title + "|" + description + "|" + startDate + "|" + endDate
+      + "|" + candidates + "|" + organizerUsername
+```
+
+Ako neko ručno izmijeni `.dat` fajl (npr. doda kandidata), HMAC verifikacija će to odmah otkriti i sistem ispisuje upozorenje.
+
+---
+
+## 7. Proces brojanja glasova
+
+**Zadatak traži:**
+> *"Sistem dešifruje glasove koristeći privatni ključ organizatora i odgovarajući simetrični ključ. Nakon završenog procesa, rezultati se prikazuju i automatski se generiše digitalno potpisan izvještaj."*
+
+**Kako je implementirano — `ReportService.countVotesAndGenerateReport()`:**
+
+```
+Za svaki EncryptedVote:
+  1. verifyVoteSignature()     → provjeri da potpis glasača je validan
+  2. RSA decrypt(encryptedSymmetricKey, orgPrivateKey) → dobij AES ključ
+  3. AES decrypt(encryptedVoteData, aesKey, IV)        → dobij ime kandidata
+  4. tally.put(candidate, count + 1)                   → broji
+
+Nakon brojanja:
+  5. Signature("SHA256withRSA").sign(reportText, orgPrivateKey)
+     → digitalni potpis organizatora nad izvještajem
+  6. Spremi u reports/<naziv>_report.txt
+```
+
+**Kako demonstrirati:** Zatvori glasanje → opcija 3 → unesi lozinku → dobij potpisan izvještaj sa procentima i pobjednikom.
+
+---
+
+## 8. CA hijerarhija u dva nivoa
+
+**Zadatak traži:**
+> *"Root CA samo potpisuje podređena CA tijela. Organizaciono CA tijelo izdaje sertifikate samo organizatorima, dok glasačko CA tijelo izdaje sertifikate samo glasačima. Svi sertifikati moraju da sadrže odgovarajuće ekstenzije."*
+
+**Kako je implementirano — `SetupPKI` + `UserRegistration`:**
+
+```
+Root CA  (root_ca.p12)
+   ├── Organizator-CA  (organizer_ca.p12)  ← potpisuje samo organizatore
+   └── Glasac-CA       (voter_ca.p12)      ← potpisuje samo glasače
+```
+
+**X.509 ekstenzije u sertifikatima:**
+```java
+// Organizator:
+KeyUsage: digitalSignature | keyEncipherment   ← prima enkriptovane glasove
+ExtendedKeyUsage: id_kp_emailProtection
+
+// Glasač:
+KeyUsage: digitalSignature | nonRepudiation    ← potpisuje glasove, ne može poricati
+ExtendedKeyUsage: id_kp_clientAuth
+```
+
+Sistem automatski bira ispravni CA pri registraciji — nemoguće je greškom izdati organizatorski sertifikat glasačkom CA-u.
+
+---
+
+## 9. CRL lista i automatsko povlačenje
+
+**Zadatak traži:**
+> *"Validacija sertifikata mora uključivati provjeru u odnosu na CRL listu (posebna za svako CA tijelo). Sertifikati se automatski povlače u slučaju tri neuspješne prijave."*
+
+**Kako je implementirano — `CRLManager` + `LoginManager`:**
+
+```
+Dvije odvojene CRL liste na disku:
+  organizer_ca_crl.dat   ← serijski brojevi povučenih org. sertifikata
+  voter_ca_crl.dat       ← serijski brojevi povučenih glasačkih sertifikata
+```
+
+Automatsko povlačenje:
+```java
+// LoginManager.registerFailed():
+if (count >= 3) {
+    CRLManager.revokeCertificate(cert);  // doda serijski broj na CRL
+    // Svaka naredna prijava → isRevoked() → vraća true → prijava odbijena zauvijek
+}
+```
+
+**Kako demonstrirati:** Pokušaj 3x prijavu sa pogrešnom lozinkom za nekog korisnika — četvrti pokušaj sa ispravnom lozinkom će biti odbijen jer je sertifikat na CRL listi.
+
+---
+
+## Kratak cheat-sheet za prezentaciju
+
+| Pitanje profesora | Tvoj odgovor |
+|---|---|
+| "Kako je zaštićen glas?" | AES-256/CBC sa nasumičnim ključem + RSA/OAEP enkripcija tog ključa |
+| "Ko može pročitati glas?" | Samo organizator, jedino on ima privatni RSA ključ |
+| "Kako glasač zna da glas nije izmijenjen?" | SHA256withRSA potpis — verifikacija bez dekriptovanja |
+| "Kako je zaštićen integritet glasanja?" | HmacSHA256 nad svim metapodacima glasanja |
+| "Šta ako neko pogodi lozinku?" | Nakon 3 greške sertifikat se automatski povlači na CRL |
+| "Zašto dvije CA?" | Organizatori i glasači imaju različite dozvole (KeyUsage ekstenzije) |
+| "Gdje se čuvaju glasovi?" | Odvojeno od metapodataka, u binarnom enkriptovanom formatu |
