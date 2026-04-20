@@ -29,15 +29,15 @@ public class SetupPKI {
         }
 
         System.out.println("+==========================================+");
-        System.out.println("|    INICIJALIZACIJA PKI HIJERARHIJE       |");
+        System.out.println("|    INITIALIZATION OF THE PKI HIERARC     |");
         System.out.println("+==========================================+");
-        System.out.println("Ovo kreira Root CA, Organizator CA i Glasac CA.");
-        System.out.println("UPOZORENJE: Izvoditi samo jednom!\n");
+        System.out.println("This creates a Root CA, an Organizer CA, and a Voter CA.");
+        System.out.println("WARNING: Perform only once!\n");
 
         // --- Unos CA lozinke ---
         String pass = readCAPassword();
         if (pass == null || pass.length() < 8) {
-            System.out.println("GRESKA: Lozinka mora imati najmanje 8 znakova. Odustajanje.");
+            System.out.println("ERROR: Password must be at least 8 characters long. Giving up.");
             return;
         }
 
@@ -46,14 +46,14 @@ public class SetupPKI {
 
         try {
             // 1. Root CA
-            System.out.print("\n[1/3] Kreiranje Root CA... ");
+            System.out.print("\n[1/3] Creating Root CA... ");
             KeyPair         rootKP   = KeyUtils.generateRSAKeyPair();
             X509Certificate rootCert = RootCACreator.createRootCA(rootKP);
             KeyStoreManager.saveToKeyStore("root_ca.p12", "root", rootKP.getPrivate(), pass, rootCert, null);
             System.out.println("OK  ->  root_ca.p12");
 
             // 2. Organizator CA — potpisan od Root CA
-            System.out.print("[2/3] Kreiranje Organizator CA... ");
+            System.out.print("[2/3] Creating Organizer CA... ");
             KeyPair         orgKP   = KeyUtils.generateRSAKeyPair();
             X509Certificate orgCert = IntermediateCACreator.createIntermediateCA(
                     "Organizator-CA", orgKP, rootCert, rootKP.getPrivate());
@@ -61,7 +61,7 @@ public class SetupPKI {
             System.out.println("OK  ->  organizer_ca.p12");
 
             // 3. Glasac CA — potpisan od Root CA
-            System.out.print("[3/3] Kreiranje Glasac CA... ");
+            System.out.print("[3/3] Creating Voter CA... ");
             KeyPair         voterKP   = KeyUtils.generateRSAKeyPair();
             X509Certificate voterCert = IntermediateCACreator.createIntermediateCA(
                     "Glasac-CA", voterKP, rootCert, rootKP.getPrivate());
@@ -69,14 +69,14 @@ public class SetupPKI {
             System.out.println("OK  ->  voter_ca.p12");
 
             System.out.println("\n+==========================================+");
-            System.out.println("|   PKI HIJERARHIJA USPJESNO KREIRANA!     |");
+            System.out.println("|   PKI HIERARCHY CREATED SUCCESSFULLY!!     |");
             System.out.println("+==========================================+");
-            System.out.println("Sacuvajte CA lozinku na sigurnom mjestu.");
-            System.out.println("Potrebna je za registraciju novih korisnika.");
-            System.out.println("\nSljedeci korak: Pokrenuti MainMenu.");
+            System.out.println("Keep the CA password in a safe place.");
+            System.out.println("It is required for registration of new users.");
+            System.out.println("\nNext Step: Run AppGUI.");
 
         } catch (Exception e) {
-            System.out.println("\nGRESKA: " + e.getMessage());
+            System.out.println("\nERROR: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -95,11 +95,11 @@ public class SetupPKI {
 
         if (console != null) {
             // Terminal — lozinka se ne prikazuje na ekranu
-            char[] pass1 = console.readPassword("Unesite lozinku za CA kljuceve: ");
-            char[] pass2 = console.readPassword("Potvrdite lozinku: ");
+            char[] pass1 = console.readPassword("Enter the CA keys password: ");
+            char[] pass2 = console.readPassword("Confirm the password: ");
 
             if (!Arrays.equals(pass1, pass2)) {
-                System.out.println("GRESKA: Lozinke se ne poklapaju!");
+                System.out.println("ERROR: Passwords missmatch!");
                 Arrays.fill(pass1, '\0');  // Obrisi iz memorije
                 Arrays.fill(pass2, '\0');
                 return null;
@@ -112,9 +112,9 @@ public class SetupPKI {
 
         } else {
             // IDE environment — System.console() je null
-            System.out.println("NAPOMENA: Pokrenuto iz IDE-a. Lozinka ce biti vidljiva.");
-            System.out.println("          Za produkcijsku upotrebu pokrenuti iz terminala.");
-            System.out.print("Unesite lozinku za CA kljuceve (min 8 znakova): ");
+            System.out.println("NOTE: Launched from the IDE. The password will be visible.");
+            System.out.println("          For production use run from terminal.");
+            System.out.print("Enter password for CA keys (min 8 characters): ");
             return new Scanner(System.in).nextLine();
         }
     }
