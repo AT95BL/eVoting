@@ -1,4 +1,4 @@
-# E-Voting System — Secure Online Voting
+# E-Voting System — System Secure Voting
 
 A desktop application that simulates a secure multi-user e-voting system, built as a university project for the **Cryptography and Computer Security** course at the Faculty of Electrical Engineering, Banja Luka.
 
