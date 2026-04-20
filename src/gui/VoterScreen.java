@@ -8,7 +8,6 @@ import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -23,11 +22,11 @@ import static gui.AppGUI.*;
 import static gui.UIComponents.*;
 
 /**
- * Panel za glasača — pregled glasanja, glasanje i verifikacija.
+ * Voter panel — browse active elections, cast encrypted votes, verify vote integrity.
  */
 public class VoterScreen extends JPanel {
 
-    private final AppGUI                      app;
+    private final AppGUI                       app;
     private final LoginManager.UserLoginResult loginResult;
 
     private JPanel electionsListPanel;
@@ -42,23 +41,23 @@ public class VoterScreen extends JPanel {
     }
 
     private void buildUI() {
+
         // ── Top bar ──────────────────────────────────────────────
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(BG_PANEL);
         topBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0,0,1,0, BORDER_COLOR),
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
                 BorderFactory.createEmptyBorder(12, 24, 12, 24)));
 
-        JLabel logo = new JLabel("🗳️  Glasački Panel");
+        JLabel logo = new JLabel("🗳️  Voter Panel");
         logo.setFont(FONT_HEADER);
         logo.setForeground(TEXT_PRIMARY);
 
         JPanel userInfo = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         userInfo.setOpaque(false);
-        userInfo.add(badge("GLASAČ", SUCCESS));
+        userInfo.add(badge("VOTER", SUCCESS));
         userInfo.add(bodyLabel(loginResult.username));
-
-        StyledButton logoutBtn = dangerButton("Odjava");
+        StyledButton logoutBtn = dangerButton("Sign Out");
         logoutBtn.setPreferredSize(new Dimension(90, 30));
         logoutBtn.addActionListener(e -> app.showScreen(new MainScreen(app)));
         userInfo.add(logoutBtn);
@@ -67,12 +66,12 @@ public class VoterScreen extends JPanel {
         topBar.add(userInfo,BorderLayout.EAST);
         add(topBar, BorderLayout.NORTH);
 
-        // ── Sadržaj ──────────────────────────────────────────────
+        // ── Content ──────────────────────────────────────────────
         JPanel content = new JPanel(new BorderLayout(0, 16));
         content.setBackground(BG_DARK);
         content.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Info kartica
+        // Info card
         JPanel infoCard = card();
         infoCard.setLayout(new BorderLayout(16, 0));
         infoCard.setPreferredSize(new Dimension(0, 80));
@@ -80,20 +79,19 @@ public class VoterScreen extends JPanel {
         JPanel infoText = new JPanel();
         infoText.setOpaque(false);
         infoText.setLayout(new BoxLayout(infoText, BoxLayout.Y_AXIS));
-        infoText.add(headerLabel("Dobrodošli, " + loginResult.username));
+        infoText.add(headerLabel("Welcome, " + loginResult.username));
         infoText.add(Box.createVerticalStrut(4));
-        infoText.add(bodyLabel("Vaš glas je zaštićen AES-256/CBC enkripcijom i RSA digitalnim potpisom."));
+        infoText.add(bodyLabel("Your vote is protected with AES-256/CBC encryption and RSA digital signature."));
 
-        // Refresh gumb
-        StyledButton refreshBtn = ghostButton("↺ Osvježi liste");
-        refreshBtn.setPreferredSize(new Dimension(130, 34));
-        refreshBtn.addActionListener(e -> refreshElections());
+        StyledButton refreshBtn = ghostButton("↺ Refresh");
+        refreshBtn.setPreferredSize(new Dimension(100, 34));
+        refreshBtn.addActionListener(e -> refresh());
 
         infoCard.add(infoText,   BorderLayout.CENTER);
         infoCard.add(refreshBtn, BorderLayout.EAST);
         content.add(infoCard, BorderLayout.NORTH);
 
-        // Lista glasanja
+        // Elections list
         electionsListPanel = new JPanel();
         electionsListPanel.setLayout(new BoxLayout(electionsListPanel, BoxLayout.Y_AXIS));
         electionsListPanel.setOpaque(false);
@@ -111,24 +109,24 @@ public class VoterScreen extends JPanel {
         JPanel sb = new JPanel(new BorderLayout());
         sb.setBackground(BG_PANEL);
         sb.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1,0,0,0, BORDER_COLOR),
+                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR),
                 BorderFactory.createEmptyBorder(6, 24, 6, 24)));
-        statusBar = new JLabel("Pregledajte dostupna glasanja.");
+        statusBar = new JLabel("Browse available elections below.");
         statusBar.setFont(FONT_SMALL);
         statusBar.setForeground(TEXT_MUTED);
         sb.add(statusBar, BorderLayout.WEST);
         add(sb, BorderLayout.SOUTH);
 
-        refreshElections();
+        refresh();
     }
 
-    // ── LISTA GLASANJA ───────────────────────────────────────────
+    // ── ELECTIONS LIST ───────────────────────────────────────────
 
-    private void refreshElections() {
+    private void refresh() {
         SwingUtilities.invokeLater(() -> {
             electionsListPanel.removeAll();
 
-            List<Election> all = ElectionManager.loadAllElections();
+            List<Election> all    = ElectionManager.loadAllElections();
             List<Election> active = all.stream()
                     .filter(Election::isCurrentlyActive)
                     .collect(Collectors.toList());
@@ -137,8 +135,7 @@ public class VoterScreen extends JPanel {
                 JPanel empty = new JPanel(new GridBagLayout());
                 empty.setOpaque(false);
                 empty.setPreferredSize(new Dimension(0, 200));
-                JLabel msg = bodyLabel("Trenutno nema aktivnih glasanja.");
-                empty.add(msg);
+                empty.add(bodyLabel("No active elections at this time."));
                 electionsListPanel.add(empty);
             } else {
                 for (Election e : active) {
@@ -147,7 +144,7 @@ public class VoterScreen extends JPanel {
                 }
             }
 
-            // Sekcija za verifikaciju
+            // Verification section always visible
             electionsListPanel.add(Box.createVerticalStrut(8));
             electionsListPanel.add(buildVerifySection(all));
 
@@ -157,12 +154,12 @@ public class VoterScreen extends JPanel {
     }
 
     private JPanel buildElectionCard(Election election) {
-        JPanel card = card();
-        card.setLayout(new BorderLayout(16, 0));
-        card.setMaximumSize(new Dimension(9999, 140));
-        card.setAlignmentX(LEFT_ALIGNMENT);
+        JPanel c = card();
+        c.setLayout(new BorderLayout(16, 0));
+        c.setMaximumSize(new Dimension(9999, 140));
+        c.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Lijeva info strana
+        // Left — election info
         JPanel info = new JPanel();
         info.setOpaque(false);
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
@@ -171,13 +168,9 @@ public class VoterScreen extends JPanel {
         titleLbl.setAlignmentX(LEFT_ALIGNMENT);
         JLabel descLbl  = bodyLabel(election.getDescription());
         descLbl.setAlignmentX(LEFT_ALIGNMENT);
-
-        String candStr = String.join("  •  ", election.getCandidates());
-        JLabel candLbl  = mutedLabel("Kandidati: " + candStr);
+        JLabel candLbl  = mutedLabel("Candidates: " + String.join("  •  ", election.getCandidates()));
         candLbl.setAlignmentX(LEFT_ALIGNMENT);
-
-        int votes = VoteStorageManager.countVotes(election.getTitle());
-        JLabel voteLbl = mutedLabel("Ukupno glasova: " + votes);
+        JLabel voteLbl  = mutedLabel("Total votes cast: " + VoteStorageManager.countVotes(election.getTitle()));
         voteLbl.setAlignmentX(LEFT_ALIGNMENT);
 
         info.add(titleLbl);
@@ -188,28 +181,27 @@ public class VoterScreen extends JPanel {
         info.add(Box.createVerticalStrut(2));
         info.add(voteLbl);
 
-        // Desna strana — status + gumb za glasanje
+        // Right — vote button or already-voted badge
         JPanel right = new JPanel();
         right.setOpaque(false);
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-        right.setPreferredSize(new Dimension(160, 0));
+        right.setPreferredSize(new Dimension(150, 0));
 
-        // Provjeri da li je glasač već glasao
         boolean alreadyVoted = false;
         try {
-            String hash = VoteEncryptionService.hashUsername(loginResult.username);
-            alreadyVoted = election.hasVotedByHash(hash);
+            alreadyVoted = election.hasVotedByHash(
+                    VoteEncryptionService.hashUsername(loginResult.username));
         } catch (Exception ignored) {}
 
         if (alreadyVoted) {
-            JLabel doneLabel = badge("✓ Glasali ste", SUCCESS);
-            doneLabel.setAlignmentX(CENTER_ALIGNMENT);
+            JLabel done = badge("✓ Vote Cast", SUCCESS);
+            done.setAlignmentX(CENTER_ALIGNMENT);
             right.add(Box.createVerticalGlue());
-            right.add(doneLabel);
+            right.add(done);
             right.add(Box.createVerticalGlue());
         } else {
             right.add(Box.createVerticalGlue());
-            StyledButton voteBtn = primaryButton("Glasaj");
+            StyledButton voteBtn = primaryButton("Vote");
             voteBtn.setAlignmentX(CENTER_ALIGNMENT);
             voteBtn.setMaximumSize(new Dimension(9999, 38));
             voteBtn.addActionListener(e -> showVoteDialog(election));
@@ -217,17 +209,18 @@ public class VoterScreen extends JPanel {
             right.add(Box.createVerticalGlue());
         }
 
-        card.add(info,  BorderLayout.CENTER);
-        card.add(right, BorderLayout.EAST);
-        return card;
+        c.add(info,  BorderLayout.CENTER);
+        c.add(right, BorderLayout.EAST);
+        return c;
     }
 
-    // ── DIJALOG ZA GLASANJE ──────────────────────────────────────
+    // ── VOTE DIALOG ──────────────────────────────────────────────
 
     private void showVoteDialog(Election election) {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
-                "Glasanje — " + election.getTitle(), true);
-        dialog.setSize(480, 420);
+        JDialog dialog = new JDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this),
+                "Cast Vote — " + election.getTitle(), true);
+        dialog.setSize(480, 430);
         dialog.setLocationRelativeTo(this);
         dialog.getContentPane().setBackground(BG_DARK);
         dialog.setLayout(new BorderLayout());
@@ -235,26 +228,24 @@ public class VoterScreen extends JPanel {
         JPanel content = new JPanel();
         content.setBackground(BG_DARK);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
+        content.setBorder(BorderFactory.createEmptyBorder(24, 32, 16, 32));
 
-        JLabel title = headerLabel(election.getTitle());
-        title.setAlignmentX(LEFT_ALIGNMENT);
-        JLabel desc  = bodyLabel(election.getDescription());
-        desc.setAlignmentX(LEFT_ALIGNMENT);
-
-        content.add(title);
+        JLabel titleLbl = headerLabel(election.getTitle());
+        titleLbl.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel descLbl  = bodyLabel(election.getDescription());
+        descLbl.setAlignmentX(LEFT_ALIGNMENT);
+        content.add(titleLbl);
         content.add(Box.createVerticalStrut(4));
-        content.add(desc);
-        content.add(Box.createVerticalStrut(20));
+        content.add(descLbl);
+        content.add(Box.createVerticalStrut(16));
         content.add(separator());
-        content.add(Box.createVerticalStrut(20));
+        content.add(Box.createVerticalStrut(16));
 
-        JLabel chooseLabel = headerLabel("Odaberite kandidata:");
-        chooseLabel.setAlignmentX(LEFT_ALIGNMENT);
-        content.add(chooseLabel);
+        JLabel choose = headerLabel("Select a candidate:");
+        choose.setAlignmentX(LEFT_ALIGNMENT);
+        content.add(choose);
         content.add(Box.createVerticalStrut(12));
 
-        // Radio gumbi za kandidate
         ButtonGroup group = new ButtonGroup();
         List<JRadioButton> radios = new java.util.ArrayList<>();
         for (String candidate : election.getCandidates()) {
@@ -271,120 +262,115 @@ public class VoterScreen extends JPanel {
             content.add(Box.createVerticalStrut(10));
         }
 
-        // Kripto info
-        content.add(Box.createVerticalStrut(10));
-        JPanel cryptoInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        cryptoInfo.setOpaque(false);
-        cryptoInfo.add(badge("AES-256", ACCENT_BLUE));
-        cryptoInfo.add(badge("RSA/OAEP", ACCENT_BLUE));
-        cryptoInfo.add(badge("SHA256withRSA", ACCENT_BLUE));
-        cryptoInfo.setAlignmentX(LEFT_ALIGNMENT);
-        content.add(cryptoInfo);
+        content.add(Box.createVerticalStrut(8));
+        JPanel cryptoBadges = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        cryptoBadges.setOpaque(false);
+        cryptoBadges.add(badge("AES-256/CBC", ACCENT_BLUE));
+        cryptoBadges.add(badge("RSA/OAEP",   ACCENT_BLUE));
+        cryptoBadges.add(badge("SHA256withRSA", ACCENT_BLUE));
+        cryptoBadges.setAlignmentX(LEFT_ALIGNMENT);
+        content.add(cryptoBadges);
+        content.add(Box.createVerticalStrut(8));
 
         JLabel progressLabel = new JLabel(" ");
         progressLabel.setFont(FONT_SMALL);
         progressLabel.setAlignmentX(LEFT_ALIGNMENT);
+        content.add(progressLabel);
 
-        // Gumbi
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        btnPanel.setBackground(BG_DARK);
-        btnPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1,0,0,0, BORDER_COLOR),
+        // Button row
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btnRow.setBackground(BG_DARK);
+        btnRow.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR),
                 BorderFactory.createEmptyBorder(12, 24, 12, 24)));
 
-        StyledButton cancelBtn = ghostButton("Odustani");
-        cancelBtn.addActionListener(e -> dialog.dispose());
+        StyledButton cancelBtn  = ghostButton("Cancel");
+        StyledButton confirmBtn = primaryButton("Confirm Vote");
 
-        StyledButton confirmBtn = primaryButton("Potvrdi glas");
+        cancelBtn .addActionListener(e -> dialog.dispose());
         confirmBtn.addActionListener(e -> {
             String chosen = null;
-            for (JRadioButton rb : radios) {
-                if (rb.isSelected()) { chosen = rb.getText(); break; }
-            }
+            for (JRadioButton rb : radios) if (rb.isSelected()) { chosen = rb.getText(); break; }
             if (chosen == null) {
-                progressLabel.setText("Odaberite kandidata!");
+                progressLabel.setText("Please select a candidate first.");
                 progressLabel.setForeground(DANGER);
                 return;
             }
 
             final String finalChosen = chosen;
             confirmBtn.setEnabled(false);
-            cancelBtn.setEnabled(false);
+            cancelBtn .setEnabled(false);
             progressLabel.setForeground(WARNING);
 
             SwingWorker<Boolean, String> worker = new SwingWorker<>() {
                 protected Boolean doInBackground() throws Exception {
-                    publish("[1/4] Generisanje AES-256 ključa...");
+                    publish("[1/4] Generating AES-256 key...");
                     KeyStore ks = KeyStoreManager.loadKeyStore(
                             loginResult.p12Path, loginResult.password);
-                    PrivateKey privKey = (PrivateKey) ks.getKey(
-                            loginResult.username, loginResult.password.toCharArray());
-                    X509Certificate cert = (X509Certificate) ks.getCertificate(loginResult.username);
+                    PrivateKey      privKey = (PrivateKey)      ks.getKey(loginResult.username, loginResult.password.toCharArray());
+                    X509Certificate cert    = (X509Certificate) ks.getCertificate(loginResult.username);
 
                     PublicKey orgPubKey = loadOrganizerPublicKey(election.getOrganizerUsername());
-                    if (orgPubKey == null) throw new Exception(
-                            "Javni ključ organizatora nije dostupan u public_certs/");
+                    if (orgPubKey == null)
+                        throw new Exception("Organizer's public key not found in public_certs/");
 
-                    publish("[2/4] Enkripcija glasa (AES/CBC) i RSA/OAEP enkripcija ključa...");
+                    publish("[2/4] Encrypting vote (AES/CBC) + wrapping key (RSA/OAEP)...");
                     EncryptedVote encVote = VoteEncryptionService.encryptAndSign(
                             finalChosen, election.getTitle(),
                             loginResult.username, privKey, cert, orgPubKey);
 
-                    publish("[3/4] Čuvanje enkriptovanog glasa...");
+                    publish("[3/4] Saving encrypted vote + updating HMAC...");
                     VoteStorageManager.saveVote(election.getTitle(), encVote);
-
-                    publish("[3/4] Ažuriranje metapodataka i HMAC...");
-                    String hash = VoteEncryptionService.hashUsername(loginResult.username);
-                    election.registerVoterHash(hash);
+                    election.registerVoterHash(
+                            VoteEncryptionService.hashUsername(loginResult.username));
                     ElectionManager.saveElection(election);
 
-                    publish("[4/4] Verifikacija digitalnog potpisa...");
-                    boolean valid = VoteEncryptionService.verifyVoteSignature(encVote);
-                    if (!valid) throw new Exception("Verifikacija potpisa nije uspjela!");
+                    publish("[4/4] Verifying digital signature...");
+                    if (!VoteEncryptionService.verifyVoteSignature(encVote))
+                        throw new Exception("Signature verification failed!");
 
                     return true;
                 }
 
                 protected void process(List<String> chunks) {
                     progressLabel.setText(chunks.get(chunks.size()-1));
+                    progressLabel.setForeground(WARNING);
                 }
 
                 protected void done() {
                     try {
                         get();
                         dialog.dispose();
-                        showVoteSuccessDialog(finalChosen, election.getTitle());
-                        refreshElections();
-                        setStatus("Glas za '" + finalChosen + "' uspješno zabilježen.");
+                        showSuccessDialog(finalChosen, election.getTitle());
+                        refresh();
+                        setStatus("Vote for '" + finalChosen + "' successfully recorded.");
                     } catch (Exception ex) {
+                        progressLabel.setText("Error: " + ex.getMessage());
                         progressLabel.setForeground(DANGER);
-                        progressLabel.setText("Greška: " + ex.getMessage());
                         confirmBtn.setEnabled(true);
-                        cancelBtn.setEnabled(true);
+                        cancelBtn .setEnabled(true);
                     }
                 }
             };
             worker.execute();
         });
 
-        content.add(Box.createVerticalStrut(8));
-        content.add(progressLabel);
+        btnRow.add(cancelBtn);
+        btnRow.add(confirmBtn);
 
-        btnPanel.add(cancelBtn);
-        btnPanel.add(confirmBtn);
+        JScrollPane sp = new JScrollPane(content);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.getViewport().setBackground(BG_DARK);
+        sp.setBackground(BG_DARK);
 
-        dialog.add(new JScrollPane(content) {{
-            setBorder(BorderFactory.createEmptyBorder());
-            getViewport().setBackground(BG_DARK);
-            setBackground(BG_DARK);
-        }}, BorderLayout.CENTER);
-        dialog.add(btnPanel, BorderLayout.SOUTH);
+        dialog.add(sp,    BorderLayout.CENTER);
+        dialog.add(btnRow,BorderLayout.SOUTH);
         dialog.setVisible(true);
     }
 
-    private void showVoteSuccessDialog(String candidate, String electionTitle) {
-        JDialog d = new JDialog((Frame)SwingUtilities.getWindowAncestor(this),
-                "Glas zabilježen!", true);
+    private void showSuccessDialog(String candidate, String electionTitle) {
+        JDialog d = new JDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this), "Vote Recorded!", true);
         d.setSize(420, 280);
         d.setLocationRelativeTo(this);
         d.getContentPane().setBackground(BG_DARK);
@@ -399,59 +385,51 @@ public class VoterScreen extends JPanel {
         icon.setFont(new Font("SansSerif", Font.PLAIN, 48));
         icon.setAlignmentX(CENTER_ALIGNMENT);
 
-        JLabel title = headerLabel("Glas uspješno zabilježen!");
+        JLabel title = headerLabel("Vote Successfully Recorded!");
         title.setAlignmentX(CENTER_ALIGNMENT);
         title.setForeground(SUCCESS);
 
-        JLabel info1 = bodyLabel("Glasanje: " + electionTitle);
-        info1.setAlignmentX(CENTER_ALIGNMENT);
+        JLabel info = bodyLabel("Election: " + electionTitle);
+        info.setAlignmentX(CENTER_ALIGNMENT);
 
-        JLabel crypto = mutedLabel("AES-256/CBC + RSA/OAEP + SHA256withRSA potpis");
+        JLabel crypto = mutedLabel("AES-256/CBC + RSA/OAEP + SHA256withRSA signature");
         crypto.setAlignmentX(CENTER_ALIGNMENT);
 
-        JLabel remind = bodyLabel("Koristite 'Verifikuj glas' za provjeru.");
+        JLabel remind = bodyLabel("Use 'Verify My Vote' to check your vote at any time.");
         remind.setAlignmentX(CENTER_ALIGNMENT);
 
-        content.add(icon);
-        content.add(Box.createVerticalStrut(12));
-        content.add(title);
-        content.add(Box.createVerticalStrut(8));
-        content.add(info1);
-        content.add(Box.createVerticalStrut(4));
-        content.add(crypto);
-        content.add(Box.createVerticalStrut(16));
+        content.add(icon);          content.add(Box.createVerticalStrut(12));
+        content.add(title);         content.add(Box.createVerticalStrut(8));
+        content.add(info);          content.add(Box.createVerticalStrut(4));
+        content.add(crypto);        content.add(Box.createVerticalStrut(16));
         content.add(remind);
 
         JPanel btn = new JPanel(new FlowLayout(FlowLayout.CENTER));
         btn.setBackground(BG_DARK);
-        StyledButton ok = primaryButton("U redu");
+        StyledButton ok = primaryButton("OK");
         ok.addActionListener(e -> d.dispose());
         btn.add(ok);
 
         d.add(content, BorderLayout.CENTER);
-        d.add(btn, BorderLayout.SOUTH);
+        d.add(btn,     BorderLayout.SOUTH);
         d.setVisible(true);
     }
 
-    // ── SEKCIJA ZA VERIFIKACIJU ──────────────────────────────────
+    // ── VERIFICATION SECTION ─────────────────────────────────────
 
     private JPanel buildVerifySection(List<Election> all) {
-        JPanel outer = card();
-        outer.setLayout(new BorderLayout(0, 12));
-        outer.setMaximumSize(new Dimension(9999, 160));
-        outer.setAlignmentX(LEFT_ALIGNMENT);
-
-        JLabel title = headerLabel("🔍  Verifikacija glasa");
-        JLabel sub   = bodyLabel("Provjerite da li je vaš glas ispravno zabilježen, bez otkrivanja sadržaja.");
+        JPanel p = card();
+        p.setLayout(new BorderLayout(0, 12));
+        p.setMaximumSize(new Dimension(9999, 160));
+        p.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel top = new JPanel();
         top.setOpaque(false);
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.add(title);
+        top.add(headerLabel("🔍  Verify My Vote"));
         top.add(Box.createVerticalStrut(4));
-        top.add(sub);
+        top.add(bodyLabel("Check that your vote is correctly recorded — without revealing its content."));
 
-        // Combo za odabir glasanja
         JComboBox<String> combo = new JComboBox<>();
         combo.setBackground(BG_CARD);
         combo.setForeground(TEXT_PRIMARY);
@@ -461,15 +439,12 @@ public class VoterScreen extends JPanel {
         JLabel verifyStatus = new JLabel(" ");
         verifyStatus.setFont(FONT_BODY);
 
-        StyledButton verifyBtn = primaryButton("Verifikuj");
+        StyledButton verifyBtn = primaryButton("Verify");
         verifyBtn.addActionListener(e -> {
             String selected = (String) combo.getSelectedItem();
             if (selected == null) return;
-            Election election = all.stream()
-                    .filter(el -> el.getTitle().equals(selected))
-                    .findFirst().orElse(null);
-            if (election == null) return;
-            handleVerify(election, verifyStatus);
+            all.stream().filter(el -> el.getTitle().equals(selected))
+               .findFirst().ifPresent(el -> handleVerify(el, verifyStatus));
         });
 
         JPanel bottom = new JPanel(new BorderLayout(8, 0));
@@ -477,38 +452,39 @@ public class VoterScreen extends JPanel {
         bottom.add(combo,     BorderLayout.CENTER);
         bottom.add(verifyBtn, BorderLayout.EAST);
 
-        outer.add(top,         BorderLayout.NORTH);
-        outer.add(bottom,      BorderLayout.CENTER);
-        outer.add(verifyStatus,BorderLayout.SOUTH);
-        return outer;
+        p.add(top,         BorderLayout.NORTH);
+        p.add(bottom,      BorderLayout.CENTER);
+        p.add(verifyStatus,BorderLayout.SOUTH);
+        return p;
     }
 
     private void handleVerify(Election election, JLabel statusLbl) {
         SwingWorker<String, Void> worker = new SwingWorker<>() {
             protected String doInBackground() throws Exception {
-                String hash   = VoteEncryptionService.hashUsername(loginResult.username);
-                EncryptedVote myVote = VoteStorageManager.findVoteByUsernameHash(
+                String hash  = VoteEncryptionService.hashUsername(loginResult.username);
+                EncryptedVote v = VoteStorageManager.findVoteByUsernameHash(
                         election.getTitle(), hash);
-                if (myVote == null) return "NEPRONADJEN";
-                boolean valid = VoteEncryptionService.verifyVoteSignature(myVote);
-                return valid ? "VALIDAN|" + new Date(myVote.getTimestamp()) : "NEVALIDAN";
+                if (v == null) return "NOT_FOUND";
+                return VoteEncryptionService.verifyVoteSignature(v)
+                        ? "VALID|" + new Date(v.getTimestamp())
+                        : "INVALID";
             }
             protected void done() {
                 try {
                     String result = get();
-                    if ("NEPRONADJEN".equals(result)) {
-                        statusLbl.setText("Niste glasali na ovom glasanju.");
+                    if ("NOT_FOUND".equals(result)) {
+                        statusLbl.setText("You have not voted in this election.");
                         statusLbl.setForeground(TEXT_MUTED);
-                    } else if (result.startsWith("VALIDAN")) {
-                        String ts = result.split("\\|")[1];
-                        statusLbl.setText("✓ Glas je VALIDAN i nije izmijenjen. Glasano: " + ts);
+                    } else if (result.startsWith("VALID")) {
+                        statusLbl.setText("✓ Vote is VALID and has not been altered. Cast: "
+                                + result.split("\\|")[1]);
                         statusLbl.setForeground(SUCCESS);
                     } else {
-                        statusLbl.setText("✗ Glas je NEVALIDAN — moguća izmjena!");
+                        statusLbl.setText("✗ Vote is INVALID — possible tampering detected!");
                         statusLbl.setForeground(DANGER);
                     }
                 } catch (Exception ex) {
-                    statusLbl.setText("Greška: " + ex.getMessage());
+                    statusLbl.setText("Error: " + ex.getMessage());
                     statusLbl.setForeground(DANGER);
                 }
             }
@@ -516,15 +492,15 @@ public class VoterScreen extends JPanel {
         worker.execute();
     }
 
-    // ── POMOĆNE METODE ───────────────────────────────────────────
+    // ── HELPERS ──────────────────────────────────────────────────
 
     private void setStatus(String text) {
         SwingUtilities.invokeLater(() -> statusBar.setText(text));
     }
 
-    private PublicKey loadOrganizerPublicKey(String orgUsername) {
+    private PublicKey loadOrganizerPublicKey(String username) {
         try {
-            java.io.File f = new java.io.File("public_certs/" + orgUsername + ".cer");
+            java.io.File f = new java.io.File("public_certs/" + username + ".cer");
             if (!f.exists()) return null;
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             try (FileInputStream fis = new FileInputStream(f)) {

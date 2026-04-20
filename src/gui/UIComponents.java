@@ -9,17 +9,18 @@ import java.awt.geom.RoundRectangle2D;
 import static gui.AppGUI.*;
 
 /**
- * Kolekcija stilizovanih Swing komponenti koje se koriste kroz cijelu aplikaciju.
+ * Reusable styled Swing components used throughout the application.
+ * All components follow the dark theme defined in AppGUI.
  */
 public class UIComponents {
 
-    // ════════════════════════════════════════════════════════
-    //  STILIZOVANI GUMB
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  STYLED BUTTON
+    // ════════════════════════════════════════════════════════════
 
     public static class StyledButton extends JButton {
-        private Color baseColor;
-        private Color hoverColor;
+        private final Color baseColor;
+        private final Color hoverColor;
         private boolean hovered = false;
 
         public StyledButton(String text, Color base) {
@@ -52,29 +53,29 @@ public class UIComponents {
         }
     }
 
-    /** Primarni plavi gumb */
+    /** Primary blue action button */
     public static StyledButton primaryButton(String text) {
         return new StyledButton(text, ACCENT_BLUE);
     }
 
-    /** Zeleni gumb (akcija uspjeha) */
+    /** Green success / confirm button */
     public static StyledButton successButton(String text) {
         return new StyledButton(text, SUCCESS);
     }
 
-    /** Crveni gumb (destruktivna akcija) */
+    /** Red destructive action button */
     public static StyledButton dangerButton(String text) {
         return new StyledButton(text, DANGER);
     }
 
-    /** Sivi gumb (sekundarna akcija) */
+    /** Muted secondary button */
     public static StyledButton ghostButton(String text) {
         return new StyledButton(text, new Color(55, 75, 105));
     }
 
-    // ════════════════════════════════════════════════════════
-    //  STILIZOVANO TEKSTUALNO POLJE
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  STYLED TEXT FIELD
+    // ════════════════════════════════════════════════════════════
 
     public static JTextField styledField(String placeholder) {
         JTextField field = new JTextField() {
@@ -90,7 +91,7 @@ public class UIComponents {
         };
         field.setOpaque(false);
         field.setBackground(BG_DARK);
-        field.setForeground(TEXT_PRIMARY);
+        field.setForeground(TEXT_MUTED);
         field.setCaretColor(ACCENT_LIGHT);
         field.setFont(FONT_BODY);
         field.setBorder(BorderFactory.createCompoundBorder(
@@ -98,9 +99,8 @@ public class UIComponents {
                 BorderFactory.createEmptyBorder(8, 12, 8, 12)));
         field.setPreferredSize(new Dimension(0, 38));
 
-        // Placeholder efekat
+        // Placeholder behaviour
         field.setText(placeholder);
-        field.setForeground(TEXT_MUTED);
         field.addFocusListener(new FocusAdapter() {
             public void focusGained(FocusEvent e) {
                 if (field.getText().equals(placeholder)) {
@@ -118,15 +118,15 @@ public class UIComponents {
         return field;
     }
 
-    /** Pomoćna metoda — vraća pravi tekst (bez placeholder-a) */
+    /** Returns the real text of a field, ignoring placeholder text. */
     public static String getFieldText(JTextField field, String placeholder) {
         String t = field.getText();
         return t.equals(placeholder) ? "" : t;
     }
 
-    // ════════════════════════════════════════════════════════
-    //  STILIZOVANO POLJE ZA LOZINKU
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  STYLED PASSWORD FIELD
+    // ════════════════════════════════════════════════════════════
 
     public static JPasswordField styledPassword(String placeholder) {
         JPasswordField field = new JPasswordField();
@@ -143,9 +143,9 @@ public class UIComponents {
         return field;
     }
 
-    // ════════════════════════════════════════════════════════
-    //  LABEL STILOVI
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  LABELS
+    // ════════════════════════════════════════════════════════════
 
     public static JLabel titleLabel(String text) {
         JLabel l = new JLabel(text);
@@ -175,16 +175,9 @@ public class UIComponents {
         return l;
     }
 
-    public static JLabel statusLabel(String text, Color color) {
-        JLabel l = new JLabel(text);
-        l.setFont(FONT_BODY);
-        l.setForeground(color);
-        return l;
-    }
-
-    // ════════════════════════════════════════════════════════
-    //  KARTICA (CARD) PANEL
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  CARD PANEL
+    // ════════════════════════════════════════════════════════════
 
     public static JPanel card() {
         JPanel p = new JPanel() {
@@ -194,7 +187,6 @@ public class UIComponents {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(BG_CARD);
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                // Suptilna bordura
                 g2.setColor(BORDER_COLOR);
                 g2.setStroke(new BasicStroke(1f));
                 g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1, getHeight()-1, 12, 12));
@@ -206,9 +198,9 @@ public class UIComponents {
         return p;
     }
 
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
     //  SEPARATOR
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
 
     public static JSeparator separator() {
         JSeparator sep = new JSeparator();
@@ -217,17 +209,17 @@ public class UIComponents {
         return sep;
     }
 
-    // ════════════════════════════════════════════════════════
-    //  BADGE (STATUS OZNAKA)
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  BADGE (status pill)
+    // ════════════════════════════════════════════════════════════
 
-    public static JLabel badge(String text, Color bg) {
+    public static JLabel badge(String text, Color color) {
         JLabel l = new JLabel(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(bg.getRed(), bg.getGreen(), bg.getBlue(), 40));
+                g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 40));
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
                 g2.dispose();
                 super.paintComponent(g);
@@ -235,14 +227,14 @@ public class UIComponents {
         };
         l.setOpaque(false);
         l.setFont(FONT_SMALL);
-        l.setForeground(bg);
+        l.setForeground(color);
         l.setBorder(BorderFactory.createEmptyBorder(3, 10, 3, 10));
         return l;
     }
 
-    // ════════════════════════════════════════════════════════
-    //  OKRUGLA BORDURA (pomoćna klasa)
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  ROUND BORDER (helper)
+    // ════════════════════════════════════════════════════════════
 
     public static class RoundBorder extends AbstractBorder {
         private final Color color;
@@ -267,20 +259,20 @@ public class UIComponents {
         public Insets getBorderInsets(Component c) { return new Insets(1,1,1,1); }
     }
 
-    // ════════════════════════════════════════════════════════
-    //  DIJALOG ZA PORUKE
-    // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
+    //  DIALOGS
+    // ════════════════════════════════════════════════════════════
 
     public static void showSuccess(Component parent, String message) {
-        JOptionPane.showMessageDialog(parent, message, "Uspjeh", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(parent, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     public static void showError(Component parent, String message) {
-        JOptionPane.showMessageDialog(parent, message, "Greška", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(parent, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
     public static boolean confirm(Component parent, String message) {
-        return JOptionPane.showConfirmDialog(parent, message, "Potvrda",
+        return JOptionPane.showConfirmDialog(parent, message, "Confirm",
                 JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
     }
 }
