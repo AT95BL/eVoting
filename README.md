@@ -307,4 +307,60 @@ project-root/
 
 ---
 
+## 🖥️ Screenshots
+
+### Welcome Screen
+> Welcome Screen to unlock the system
+
+![Welcome Screen](screenshots/1-welcome-screen.png)
+
+---
+
+### System Unlocked
+> System Unlocked Screen
+
+![System Unlocked](screenshots/2-system-unlocked.png)
+
+---
+
+### Register Organization Screen
+> Register Organization Panel
+
+![Register Organization](screenshots/3-register-organization.png)
+
+### Register Voter Screen
+> Register Voter Panel
+
+![Register Voter](screenshots/4-register-voter.png)
+
+### Organizer Panel Screen
+> Organizer Panel Screen
+
+![Organizer Panel](screenshots/5-organizer-panel.png)
+
+### Election Created
+> Election Created Screen
+
+![Election Created](screenshots/6-election-created.png)
+
+### Voter Panel
+> Voter Panel
+
+![Voter Panel](screenshots/7-voter-panel.png)
+
+### Voting Process
+> Voting Process
+
+![Voting Process](screenshots/8-voting-process.png)
+
+### Voting Verification
+> Voting Verification
+
+![Voting Verification](screenshots/9-voting-verification.png)
+
+### Election Results Report
+> Election Results Reproting Screen
+
+![Election Results Report](screenshots/10-results-reports.png)
+
 *Faculty of Electrical Engineering Banja Luka — Cryptography and Computer Security, 2025/2026*
