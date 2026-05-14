@@ -360,6 +360,40 @@ project-root/
 | Java SE | 11+ | Core platform |
 | Java Swing | Built-in | GUI framework |
 
+## 👤 Author
+
+**Andrej Trožić** *Software Developer specializing in Backend Systems & Infrastructure*
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Andrej_Trožić-blue?logo=linkedin)](https://www.linkedin.com/in/andrej-tro%C5%BEi%C4%87-57957122b/)  
+[![GitHub](https://img.shields.io/badge/GitHub-AT95BL-black?logo=github)](https://github.com/AT95BL)  
+[![Portfolio](https://img.shields.io/badge/Portfolio-andrejtrozic.com-green)](https://andrejtrozic.com)
+
+---
+
+## 📄 License
+
+MIT License
+
+Copyright (c) 2026 Andrej Trožić
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ---
 
 *Faculty of Electrical Engineering Banja Luka — Cryptography and Computer Security, 2025/2026*
